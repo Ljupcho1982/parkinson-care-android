@@ -112,20 +112,31 @@ public class AlarmActivity extends Activity {
     }
 
     private void startVoice() {
-        final String phrase = "mk".equals(lang)
-                ? "Време е да го земете лекот. " + name + ". " + (dose == null ? "" : dose)
-                : "Time to take your medication. " + name + ". " + (dose == null ? "" : dose);
         tts = new TextToSpeech(this, status -> {
             if (status != TextToSpeech.SUCCESS || tts == null) return;
-            Locale loc = "mk".equals(lang) ? new Locale("mk", "MK")
-                    : ("en".equals(lang) ? Locale.US : Locale.getDefault());
-            int r = tts.setLanguage(loc);
-            if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) tts.setLanguage(Locale.getDefault());
+
+            String text = null;
+            // Try Macedonian only if the user explicitly chose it AND the device supports it.
+            if ("mk".equals(lang)) {
+                int r = tts.setLanguage(new Locale("mk", "MK"));
+                if (r != TextToSpeech.LANG_MISSING_DATA && r != TextToSpeech.LANG_NOT_SUPPORTED) {
+                    text = "Време е да го земете лекот. " + name + ". " + (dose == null ? "" : dose);
+                }
+            }
+            // Fall back to English (available on virtually every device) so there is ALWAYS a voice.
+            if (text == null) {
+                int r = tts.setLanguage(Locale.US);
+                if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    tts.setLanguage(Locale.ENGLISH);
+                }
+                text = "Time to take your medication. " + name + ". " + (dose == null ? "" : dose);
+            }
+
             tts.setSpeechRate(0.92f);
             Bundle params = new Bundle();
             params.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM);
             for (int i = 1; i <= 4; i++) {
-                tts.speak(phrase, i == 1 ? TextToSpeech.QUEUE_FLUSH : TextToSpeech.QUEUE_ADD, params, "pk" + i);
+                tts.speak(text, i == 1 ? TextToSpeech.QUEUE_FLUSH : TextToSpeech.QUEUE_ADD, params, "pk" + i);
                 tts.playSilentUtterance(1400, TextToSpeech.QUEUE_ADD, "gap" + i);
             }
         });
