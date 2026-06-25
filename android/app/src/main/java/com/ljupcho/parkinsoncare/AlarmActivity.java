@@ -116,22 +116,22 @@ public class AlarmActivity extends Activity {
         tts = new TextToSpeech(this, status -> {
             if (status != TextToSpeech.SUCCESS || tts == null) return;
 
-            String text = null;
-            // Try Macedonian only if the user explicitly chose it AND the device supports it.
-            if ("mk".equals(lang)) {
-                int r = tts.setLanguage(new Locale("mk", "MK"));
-                if (r != TextToSpeech.LANG_MISSING_DATA && r != TextToSpeech.LANG_NOT_SUPPORTED) {
-                    text = "Време е да го земете лекот. " + name + ". " + (dose == null ? "" : dose);
-                }
-            }
-            // Fall back to English (available on virtually every device) so there is ALWAYS a voice.
-            if (text == null) {
-                int r = tts.setLanguage(Locale.US);
-                if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    tts.setLanguage(Locale.ENGLISH);
-                }
-                text = "Time to take your medication. " + name + ". " + (dose == null ? "" : dose);
-            }
+            final String mkText = "Време е да го земете лекот. " + name + ". " + (dose == null ? "" : dose);
+            final String enText = "Time to take your medication. " + name + ". " + (dose == null ? "" : dose);
+            final Locale mkLoc = new Locale("mk", "MK");
+
+            boolean haveMk = isAvail(mkLoc);
+            boolean haveEn = isAvail(Locale.US) || isAvail(Locale.ENGLISH);
+
+            String text;
+            // Prefer Macedonian if the user chose it (or device is set to MK) and a MK voice exists;
+            // otherwise English; otherwise whatever voice the device actually has (so SOMETHING speaks).
+            boolean preferMk = "mk".equals(lang) || (("auto".equals(lang) || lang == null)
+                    && Locale.getDefault().getLanguage().equals("mk"));
+            if (preferMk && haveMk) { tts.setLanguage(mkLoc); text = mkText; }
+            else if (haveEn) { tts.setLanguage(isAvail(Locale.US) ? Locale.US : Locale.ENGLISH); text = enText; }
+            else if (haveMk) { tts.setLanguage(mkLoc); text = mkText; }
+            else { text = enText; /* keep engine default voice — it produced the example, so it can speak */ }
 
             tts.setSpeechRate(0.92f);
 
@@ -156,6 +156,11 @@ public class AlarmActivity extends Activity {
 
     private void duckRing(boolean quiet) {
         try { if (player != null) player.setVolume(quiet ? 0f : 1f, quiet ? 0f : 1f); } catch (Exception ignored) {}
+    }
+
+    private boolean isAvail(Locale l) {
+        try { return tts != null && tts.isLanguageAvailable(l) >= TextToSpeech.LANG_AVAILABLE; }
+        catch (Exception e) { return false; }
     }
 
     private void stopRingAndVibrate() {
