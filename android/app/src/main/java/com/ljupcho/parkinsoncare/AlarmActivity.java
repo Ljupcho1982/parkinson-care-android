@@ -113,9 +113,19 @@ public class AlarmActivity extends Activity {
     }
 
     private void startVoice() {
+        // NOTE: onInit can fire before the `tts` field finishes assigning. Defer the actual speaking
+        // to the main-thread message queue so `tts` is guaranteed non-null by then (fixes silent voice).
         tts = new TextToSpeech(this, status -> {
-            if (status != TextToSpeech.SUCCESS || tts == null) return;
+            ttsStatus = status;
+            handler.post(this::speakNow);
+        });
+    }
 
+    private int ttsStatus = -99;
+
+    private void speakNow() {
+        if (ttsStatus != TextToSpeech.SUCCESS || tts == null) return;
+        {
             final String mkText = "Време е да го земете лекот. " + name + ". " + (dose == null ? "" : dose);
             final String enText = "Time to take your medication. " + name + ". " + (dose == null ? "" : dose);
             final Locale mkLoc = new Locale("mk", "MK");
@@ -155,7 +165,7 @@ public class AlarmActivity extends Activity {
             tts.speak(text, TextToSpeech.QUEUE_ADD, null, "pk2");
             tts.playSilentUtterance(900, TextToSpeech.QUEUE_ADD, "g2");
             tts.speak(text, TextToSpeech.QUEUE_ADD, null, "end");
-        });
+        }
     }
 
     private void duckRing(boolean quiet) {
