@@ -40,18 +40,22 @@
       if (wrap) wrap.insertBefore(bar, wrap.firstChild);
     }
     const fmt = ms => ms ? new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
-    const ok = st.exactAllowed && st.notificationsAllowed;
-    const needFix = !st.exactAllowed || !st.notificationsAllowed;
+    const battery = st.batteryUnrestricted !== false;
+    const ok = st.exactAllowed && st.notificationsAllowed && battery;
+    const needFix = !st.exactAllowed || !st.notificationsAllowed || !battery;
     let head;
     if (!st.notificationsAllowed) head = "⚠️ Notifications OFF — tap to fix";
     else if (!st.exactAllowed) head = "⚠️ Exact alarms OFF — tap to fix";
+    else if (!battery) head = "⚠️ Battery optimization ON — tap to allow (keeps alarms alive)";
     else if (!st.scheduledCount) head = "ℹ️ No pills scheduled — add one in “My Pills”";
     else head = "✅ " + st.scheduledCount + " alarm(s) set · next at " + fmt(st.nextAt);
 
     const lastFired = st.lastFiredAt
       ? "Last alarm fired: " + fmt(st.lastFiredAt) + (st.lastFiredName ? " (" + st.lastFiredName + ")" : "")
       : "Last alarm fired: never yet";
-    const perms = "Notifications: " + (st.notificationsAllowed ? "on" : "OFF") + " · Exact alarms: " + (st.exactAllowed ? "on" : "OFF");
+    const perms = "Notifications: " + (st.notificationsAllowed ? "on" : "OFF")
+      + " · Exact alarms: " + (st.exactAllowed ? "on" : "OFF")
+      + " · Battery: " + (battery ? "unrestricted" : "RESTRICTED");
 
     bar.innerHTML = "<div>" + head + "</div>" +
       "<div style='font-weight:400;opacity:.85;margin-top:4px;font-size:.82rem'>" + perms + "<br>" + lastFired + "</div>";

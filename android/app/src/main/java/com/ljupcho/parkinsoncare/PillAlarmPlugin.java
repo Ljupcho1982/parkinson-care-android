@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
+import android.os.PowerManager;
 import android.provider.Settings;
 
 import androidx.core.app.NotificationManagerCompat;
@@ -46,6 +47,20 @@ public class PillAlarmPlugin extends Plugin {
             if (am != null && !am.canScheduleExactAlarms()) {
                 try {
                     Intent i = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                    i.setData(Uri.parse("package:" + ctx.getPackageName()));
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    ctx.startActivity(i);
+                    call.resolve();
+                    return;
+                } catch (Exception ignored) {}
+            }
+        }
+        // 3) Battery optimization on? Ask to exempt the app (keeps alarms alive across most brands).
+        if (Build.VERSION.SDK_INT >= 23) {
+            PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(ctx.getPackageName())) {
+                try {
+                    Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
                     i.setData(Uri.parse("package:" + ctx.getPackageName()));
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     ctx.startActivity(i);
@@ -128,6 +143,11 @@ public class PillAlarmPlugin extends Plugin {
             exact = am != null && am.canScheduleExactAlarms();
         }
         boolean notif = NotificationManagerCompat.from(ctx).areNotificationsEnabled();
+        boolean battery = true;
+        if (Build.VERSION.SDK_INT >= 23) {
+            PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
+            battery = pm != null && pm.isIgnoringBatteryOptimizations(ctx.getPackageName());
+        }
 
         SharedPreferences p = ctx.getSharedPreferences("pk_native", Context.MODE_PRIVATE);
         int count = 0;
@@ -151,6 +171,7 @@ public class PillAlarmPlugin extends Plugin {
         JSObject r = new JSObject();
         r.put("exactAllowed", exact);
         r.put("notificationsAllowed", notif);
+        r.put("batteryUnrestricted", battery);
         r.put("scheduledCount", count);
         r.put("nextAt", next == Long.MAX_VALUE ? 0 : next);
         r.put("lastFiredAt", p.getLong("lastFiredAt", 0));
