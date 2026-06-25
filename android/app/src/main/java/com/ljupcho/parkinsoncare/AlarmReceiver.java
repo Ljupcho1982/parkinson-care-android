@@ -23,7 +23,7 @@ import androidx.core.app.NotificationCompat;
  */
 public class AlarmReceiver extends BroadcastReceiver {
 
-    static final String CHANNEL_ID = "pill_alarm_ring_v2";
+    static final String CHANNEL_ID = "pill_alarm_v3";
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -78,7 +78,6 @@ public class AlarmReceiver extends BroadcastReceiver {
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setAutoCancel(true)
-                .setOngoing(true)
                 .setFullScreenIntent(fullPi, true)
                 .setContentIntent(fullPi)
                 .addAction(0, "✓ I took it", tookPi)

@@ -113,7 +113,7 @@
         const s = settings();
         try {
           await PillAlarm.scheduleTest({ seconds: 15, lang: s.lang, voice: s.voice, sound: s.sound, vibrate: s.vibrate });
-          alert("Now LOCK your phone (press the power button). The alarm should ring in about 15 seconds.");
+          alert("Now press HOME to leave the app (or lock the phone). The alarm notification can only pop up when the app is NOT open. It fires in ~15 seconds.");
         } catch (e) { console.warn("scheduleTest failed", e); }
       };
       tb.parentNode.insertBefore(b2, tb.nextSibling);
