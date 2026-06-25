@@ -79,6 +79,15 @@ public class AlarmReceiver extends BroadcastReceiver {
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) nm.notify(notifId, b.build());
 
+        // Directly bring up the full-screen alarm. The setAlarmClock() that triggered us grants a
+        // temporary allowlist that permits this background activity start (even when unlocked).
+        try {
+            Intent act = new Intent(context, AlarmActivity.class);
+            act.putExtras(intent);
+            act.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NO_USER_ACTION);
+            context.startActivity(act);
+        } catch (Exception ignored) {}
+
         try { if (wl != null && wl.isHeld()) wl.release(); } catch (Exception ignored) {}
     }
 
