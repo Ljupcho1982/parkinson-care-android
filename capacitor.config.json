@@ -1,0 +1,8 @@
+{
+  "appId": "com.ljupcho.parkinsoncare",
+  "appName": "Parkinson Care",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true
+  }
+}

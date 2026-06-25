@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#3da9fc">
+<title>Parkinson Care — Medication & Well-being Tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Parkinson Care">
+<style>
+  :root{
+    --bg:#0f1724; --panel:#16202e; --panel2:#1d2a3a; --line:#2a3a4f;
+    --text:#eaf2ff; --muted:#9fb2c8; --accent:#3da9fc; --accent2:#7c5cff;
+    --good:#2ecc71; --warn:#f4b740; --bad:#ff5d5d; --radius:16px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f3f6fb; --panel:#ffffff; --panel2:#eef3fa; --line:#d8e2f0;
+      --text:#16222f; --muted:#5b6b7e; --accent:#1366d6; --accent2:#6a3fe0;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0; padding:0}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.45;
+    -webkit-font-smoothing:antialiased; font-size:18px;
+  }
+  header{
+    padding:calc(14px + env(safe-area-inset-top)) 20px 16px; background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#fff; position:sticky; top:0; z-index:10;
+  }
+  header h1{margin:0; font-size:1.35rem; letter-spacing:.2px}
+  header p{margin:4px 0 0; opacity:.9; font-size:.95rem}
+  .wrap{max-width:760px; margin:0 auto; padding:16px}
+  nav{
+    display:flex; gap:8px; max-width:760px; margin:0 auto; padding:10px 16px 0;
+    flex-wrap:wrap;
+  }
+  nav button{
+    flex:1 1 auto; min-width:120px; padding:14px 10px; border:none; cursor:pointer;
+    background:var(--panel); color:var(--muted); border-radius:12px 12px 0 0;
+    font-size:1rem; font-weight:600;
+  }
+  nav button.active{background:var(--panel); color:var(--text); box-shadow:inset 0 -3px 0 var(--accent)}
+  section{display:none; background:var(--panel); border-radius:0 0 var(--radius) var(--radius); padding:18px;}
+  section.active{display:block}
+  h2{margin:.2em 0 .6em; font-size:1.15rem}
+  .card{background:var(--panel2); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  label{display:block; font-size:.85rem; color:var(--muted); margin:0 0 4px}
+  input,select,textarea{
+    width:100%; padding:13px; border-radius:12px; border:1px solid var(--line);
+    background:var(--bg); color:var(--text); font-size:1rem; font-family:inherit;
+  }
+  textarea{min-height:70px; resize:vertical}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:14px 18px; border:none; border-radius:12px; cursor:pointer;
+    font-size:1rem; font-weight:700; background:var(--accent); color:#fff;
+  }
+  .btn.alt{background:var(--accent2)}
+  .btn.ghost{background:transparent; color:var(--accent); border:1px solid var(--line)}
+  .btn.danger{background:transparent; color:var(--bad); border:1px solid var(--line); font-weight:600}
+  .btn:active{transform:translateY(1px)}
+  .btn.big{width:100%; padding:18px; font-size:1.1rem}
+  .pill-due{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--panel2); border:1px solid var(--line); border-left:6px solid var(--muted);
+    border-radius:14px; padding:14px 16px; margin-bottom:12px;
+  }
+  .pill-due.due{border-left-color:var(--warn)}
+  .pill-due.overdue{border-left-color:var(--bad)}
+  .pill-due.done{border-left-color:var(--good); opacity:.8}
+  .pill-name{font-weight:700; font-size:1.05rem}
+  .pill-meta{color:var(--muted); font-size:.9rem}
+  .tag{font-size:.72rem; font-weight:700; padding:3px 9px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px}
+  .tag.due{background:rgba(244,183,64,.18); color:var(--warn)}
+  .tag.overdue{background:rgba(255,93,93,.18); color:var(--bad)}
+  .tag.done{background:rgba(46,204,113,.18); color:var(--good)}
+  .tag.upcoming{background:rgba(159,178,200,.18); color:var(--muted)}
+  .stat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px}
+  .stat{background:var(--panel2); border:1px solid var(--line); border-radius:14px; padding:14px; text-align:center}
+  .stat b{display:block; font-size:1.6rem}
+  .stat span{color:var(--muted); font-size:.8rem}
+  .bar{height:12px; border-radius:999px; background:var(--line); overflow:hidden}
+  .bar>i{display:block; height:100%; background:var(--good)}
+  .scale{display:flex; gap:6px}
+  .scale button{flex:1; padding:12px 0; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-weight:700; cursor:pointer}
+  .scale button.sel{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .muted{color:var(--muted)}
+  .small{font-size:.85rem}
+  .hist-item{border-bottom:1px solid var(--line); padding:12px 0}
+  .hist-item:last-child{border-bottom:none}
+  .flex-between{display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .empty{text-align:center; color:var(--muted); padding:28px 10px}
+  .med-item{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px; background:var(--bg); border:1px solid var(--line); border-radius:12px; margin-bottom:10px}
+  details summary{cursor:pointer; font-weight:600; padding:8px 0}
+  .disclaimer{font-size:.78rem; color:var(--muted); margin-top:18px; text-align:center; line-height:1.5}
+  .col{flex:1 1 160px}
+  hr{border:none; border-top:1px solid var(--line); margin:16px 0}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--good); color:#04200f; padding:14px 22px; border-radius:999px; font-weight:700; box-shadow:0 8px 30px rgba(0,0,0,.3); z-index:50; opacity:0; transition:opacity .25s, transform .25s; pointer-events:none}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px)}
+  .switch{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0}
+  .switch input{width:auto}
+  .banner{background:var(--accent2); color:#fff; border-radius:14px; padding:14px 16px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  .banner .btn{background:#fff; color:var(--accent2)}
+
+  /* ============ FULL-SCREEN ALARM ============ */
+  #alarm{
+    position:fixed; inset:0; z-index:9999; display:none;
+    flex-direction:column; align-items:center; justify-content:center; text-align:center;
+    padding:24px calc(24px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
+    color:#fff; background:#b3000f;
+    animation:flash 1s steps(1,end) infinite;
+  }
+  #alarm.show{display:flex}
+  @keyframes flash{50%{background:#ff2b3d}}
+  #alarm .kicker{font-size:1.5rem; font-weight:800; letter-spacing:2px; text-transform:uppercase; opacity:.95}
+  #alarm .bell{font-size:4.5rem; line-height:1; margin:6px 0 2px; animation:ring .6s ease-in-out infinite}
+  @keyframes ring{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}}
+  #alarm .pname{font-size:clamp(2.6rem,12vw,5rem); font-weight:900; line-height:1.05; margin:8px 0; text-shadow:0 3px 14px rgba(0,0,0,.35); word-break:break-word}
+  #alarm .pdose{font-size:clamp(1.4rem,6vw,2.4rem); font-weight:700; margin-bottom:4px}
+  #alarm .ptime{font-size:1.3rem; opacity:.9; margin-bottom:22px}
+  #alarm .actions{display:flex; flex-direction:column; gap:14px; width:100%; max-width:460px}
+  #alarm .abtn{padding:24px; font-size:1.6rem; font-weight:900; border:none; border-radius:18px; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,.25)}
+  #alarm .abtn.took{background:#15a24a; color:#fff}
+  #alarm .abtn.snooze{background:#fff; color:#b3000f}
+  #alarm .abtn:active{transform:translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.25)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧠 Parkinson Care</h1>
+  <p>Medication schedule &amp; daily well-being tracker</p>
+</header>
+
+<nav>
+  <button data-tab="today" class="active">Today</button>
+  <button data-tab="wellbeing">Well-being</button>
+  <button data-tab="meds">My Pills</button>
+  <button data-tab="history">History</button>
+</nav>
+
+<div class="wrap">
+
+  <!-- install / alarm-permission banners -->
+  <div id="installBanner" class="banner" style="display:none">
+    <span>📲 Install this app on your phone for one-tap access &amp; alarms.</span>
+    <button class="btn" id="installBtn">Install</button>
+  </div>
+  <div id="notifBanner" class="banner" style="display:none; background:var(--warn); color:#3a2b00">
+    <span>🔔 Turn on alarms so you never miss a dose.</span>
+    <button class="btn" id="notifBtn" style="color:var(--warn)">Enable alarms</button>
+  </div>
+
+  <!-- ================= TODAY ================= -->
+  <section id="today" class="active">
+    <h2>Today's doses — <span id="todayDate"></span></h2>
+    <div class="stat-grid">
+      <div class="stat"><b id="statTaken">0</b><span>Taken</span></div>
+      <div class="stat"><b id="statDue">0</b><span>Due / overdue</span></div>
+      <div class="stat"><b id="statAdh">—</b><span>Adherence</span></div>
+    </div>
+    <div class="bar" style="margin-bottom:16px"><i id="adhBar" style="width:0%"></i></div>
+    <div id="doseList"></div>
+    <button class="btn ghost big" id="testAlarm" style="margin-top:6px">🔔 Test the alarm (voice + big letters)</button>
+  </section>
+
+  <!-- ================= WELL-BEING ================= -->
+  <section id="wellbeing">
+    <h2>How are you feeling today?</h2>
+    <div class="card">
+      <label>Date</label>
+      <input type="date" id="wbDate">
+
+      <div style="margin-top:14px">
+        <label>Overall well-being (1 = very bad, 5 = great)</label>
+        <div class="scale" data-scale="mood">
+          <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <label>Tremor (1 = none, 5 = severe)</label>
+        <div class="scale" data-scale="tremor">
+          <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <label>Stiffness / slowness (1 = none, 5 = severe)</label>
+        <div class="scale" data-scale="stiffness">
+          <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <label>Energy (1 = exhausted, 5 = energetic)</label>
+        <div class="scale" data-scale="energy">
+          <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <div class="col">
+          <label>Hours slept</label>
+          <input type="number" id="wbSleep" min="0" max="24" step="0.5" placeholder="e.g. 7">
+        </div>
+        <div class="col">
+          <label>"Off" episodes today</label>
+          <input type="number" id="wbOff" min="0" step="1" placeholder="e.g. 2">
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <label>Notes (side effects, falls, anything to tell the doctor)</label>
+        <textarea id="wbNotes" placeholder="Write anything you noticed…"></textarea>
+      </div>
+      <button class="btn big" id="saveWb" style="margin-top:16px">💾 Save today's record</button>
+    </div>
+  </section>
+
+  <!-- ================= MEDS ================= -->
+  <section id="meds">
+    <h2>My pills &amp; schedule</h2>
+    <div class="card">
+      <label>Pill / medication name</label>
+      <input type="text" id="medName" placeholder="e.g. Levodopa/Carbidopa">
+      <div class="row" style="margin-top:12px">
+        <div class="col">
+          <label>Dose</label>
+          <input type="text" id="medDose" placeholder="e.g. 100/25 mg, 1 tablet">
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <label>Times of day (one or more)</label>
+        <div id="timeInputs"></div>
+        <button class="btn ghost small" id="addTime" style="margin-top:8px">+ Add another time</button>
+      </div>
+      <button class="btn big alt" id="saveMed" style="margin-top:16px">➕ Save medication</button>
+    </div>
+    <h2 style="margin-top:8px">Current medications</h2>
+    <div id="medList"></div>
+
+    <h2 style="margin-top:18px">🔔 Alarm settings</h2>
+    <div class="card">
+      <div class="switch">
+        <label style="margin:0">Spoken voice announcement</label>
+        <input type="checkbox" id="setVoice" checked>
+      </div>
+      <div class="switch">
+        <label style="margin:0">Alarm sound</label>
+        <input type="checkbox" id="setSound" checked>
+      </div>
+      <div class="switch">
+        <label style="margin:0">Vibrate</label>
+        <input type="checkbox" id="setVibrate" checked>
+      </div>
+      <div style="margin-top:8px">
+        <label>Voice language</label>
+        <select id="setLang">
+          <option value="auto">Device default</option>
+          <option value="en">English</option>
+          <option value="mk">Македонски (Macedonian)</option>
+        </select>
+      </div>
+      <div style="margin-top:12px">
+        <label>Snooze length (minutes)</label>
+        <input type="number" id="setSnooze" min="1" max="60" value="10">
+      </div>
+      <p class="small muted" style="margin-top:10px">Keep this app open (or in the background) for alarms to ring. For best results, install it to your home screen and add it to your phone's battery "unrestricted" list.</p>
+    </div>
+  </section>
+
+  <!-- ================= HISTORY ================= -->
+  <section id="history">
+    <h2>History</h2>
+    <details open>
+      <summary>📋 Well-being records</summary>
+      <div id="wbHistory"></div>
+    </details>
+    <hr>
+    <details open>
+      <summary>💊 Medication log</summary>
+      <div id="doseHistory"></div>
+    </details>
+    <hr>
+    <div class="row">
+      <button class="btn ghost" id="exportBtn">⬇ Export all data (.json)</button>
+      <button class="btn ghost" id="exportCsv">⬇ Export log (.csv)</button>
+      <button class="btn danger" id="clearBtn">Clear all data</button>
+    </div>
+  </section>
+
+  <p class="disclaimer">
+    This app helps you <b>track and remember</b> — it does not give medical advice.
+    Never change your medication or schedule without talking to your doctor or neurologist.<br>
+    All your data is stored only on this device, in this browser. Nothing is sent anywhere.
+  </p>
+</div>
+
+<!-- ============ FULL-SCREEN ALARM OVERLAY ============ -->
+<div id="alarm">
+  <div class="kicker">⏰ Time for your pill</div>
+  <div class="bell">🔔</div>
+  <div class="pname" id="alPname">—</div>
+  <div class="pdose" id="alPdose"></div>
+  <div class="ptime" id="alPtime"></div>
+  <div class="actions">
+    <button class="abtn took" id="alTook">✓ I TOOK IT</button>
+    <button class="abtn snooze" id="alSnooze">⏰ SNOOZE</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const STORE = { meds:"pk_meds", doses:"pk_doses", wb:"pk_wellbeing", set:"pk_settings" };
+
+const load = k => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch(e){ return []; } };
+const save = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+const todayStr = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+const DEF_SET = { voice:true, sound:true, vibrate:true, lang:"auto", snooze:10 };
+function getSettings(){ try{ return Object.assign({}, DEF_SET, JSON.parse(localStorage.getItem(STORE.set))||{}); }catch(e){ return {...DEF_SET}; } }
+function setSettings(s){ localStorage.setItem(STORE.set, JSON.stringify(s)); }
+
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove("show"), 1800);
+}
+
+/* ---------- Tabs ---------- */
+$$("nav button").forEach(b => b.addEventListener("click", () => {
+  $$("nav button").forEach(x=>x.classList.remove("active"));
+  $$("section").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  $("#"+b.dataset.tab).classList.add("active");
+  if(b.dataset.tab==="today") renderToday();
+  if(b.dataset.tab==="history") renderHistory();
+}));
+
+/* ================= MEDS ================= */
+function timeInputRow(val=""){
+  const div = document.createElement("div");
+  div.className = "row"; div.style.marginBottom = "8px";
+  div.innerHTML = `<input type="time" class="medTime" value="${val}" style="flex:1">
+    <button class="btn danger" type="button" style="flex:0 0 auto">✕</button>`;
+  div.querySelector("button").onclick = () => div.remove();
+  return div;
+}
+$("#addTime").onclick = () => $("#timeInputs").appendChild(timeInputRow());
+
+function resetMedForm(){
+  $("#medName").value = ""; $("#medDose").value = "";
+  $("#timeInputs").innerHTML = "";
+  $("#timeInputs").appendChild(timeInputRow("08:00"));
+  $("#saveMed").textContent = "➕ Save medication";
+  delete $("#saveMed").dataset.edit;
+}
+
+$("#saveMed").onclick = () => {
+  const name = $("#medName").value.trim();
+  const dose = $("#medDose").value.trim();
+  const times = $$(".medTime").map(i=>i.value).filter(Boolean).sort();
+  if(!name){ toast("Enter a pill name"); return; }
+  if(!times.length){ toast("Add at least one time"); return; }
+  let meds = load(STORE.meds);
+  const editId = $("#saveMed").dataset.edit;
+  if(editId){
+    meds = meds.map(m => m.id===editId ? {...m, name, dose, times} : m);
+    toast("Medication updated");
+  } else {
+    meds.push({ id:uid(), name, dose, times });
+    toast("Medication added");
+  }
+  save(STORE.meds, meds);
+  resetMedForm(); renderMeds(); renderToday();
+};
+
+function renderMeds(){
+  const meds = load(STORE.meds);
+  const el = $("#medList");
+  if(!meds.length){ el.innerHTML = `<div class="empty">No medications yet. Add your first pill above.</div>`; return; }
+  el.innerHTML = "";
+  meds.forEach(m => {
+    const d = document.createElement("div");
+    d.className = "med-item";
+    d.innerHTML = `<div>
+        <div class="pill-name">${esc(m.name)}</div>
+        <div class="pill-meta">${m.dose?esc(m.dose)+" · ":""}${m.times.join(", ")}</div>
+      </div>
+      <div class="row" style="flex:0 0 auto">
+        <button class="btn ghost small editM">Edit</button>
+        <button class="btn danger small delM">Delete</button>
+      </div>`;
+    d.querySelector(".editM").onclick = () => editMed(m.id);
+    d.querySelector(".delM").onclick = () => {
+      if(!confirm("Delete "+m.name+"?")) return;
+      save(STORE.meds, load(STORE.meds).filter(x=>x.id!==m.id));
+      renderMeds(); renderToday(); toast("Deleted");
+    };
+    el.appendChild(d);
+  });
+}
+function editMed(id){
+  const m = load(STORE.meds).find(x=>x.id===id); if(!m) return;
+  $("#medName").value = m.name; $("#medDose").value = m.dose||"";
+  $("#timeInputs").innerHTML = "";
+  m.times.forEach(t => $("#timeInputs").appendChild(timeInputRow(t)));
+  $("#saveMed").textContent = "💾 Update medication";
+  $("#saveMed").dataset.edit = id;
+  $("#medName").scrollIntoView({behavior:"smooth"});
+}
+
+/* ================= TODAY / DOSES ================= */
+const doseKey = (medId, time, day) => `${day}|${medId}|${time}`;
+
+function todaySchedule(){
+  const day = todayStr();
+  const meds = load(STORE.meds);
+  let schedule = [];
+  meds.forEach(m => m.times.forEach(t => schedule.push({ medId:m.id, name:m.name, dose:m.dose, time:t, key:doseKey(m.id,t,day) })));
+  schedule.sort((a,b)=> a.time.localeCompare(b.time));
+  return schedule;
+}
+
+function renderToday(){
+  const day = todayStr();
+  $("#todayDate").textContent = new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
+  const doses = load(STORE.doses);
+  const takenSet = new Set(doses.filter(d=>d.day===day).map(d=>d.key));
+  const schedule = todaySchedule();
+
+  const now = new Date(); const nowMin = now.getHours()*60+now.getMinutes();
+  const list = $("#doseList");
+
+  if(!schedule.length){
+    list.innerHTML = `<div class="empty">No pills scheduled.<br><br>Go to <b>My Pills</b> to add your medications.</div>`;
+    $("#statTaken").textContent="0"; $("#statDue").textContent="0"; $("#statAdh").textContent="—"; $("#adhBar").style.width="0%";
+    return;
+  }
+
+  let taken=0, dueOver=0;
+  list.innerHTML = "";
+  schedule.forEach(s => {
+    const isTaken = takenSet.has(s.key);
+    const [h,mi] = s.time.split(":").map(Number);
+    const tMin = h*60+mi;
+    let status="upcoming", label="Upcoming";
+    if(isTaken){ status="done"; label="Taken"; taken++; }
+    else if(nowMin > tMin+30){ status="overdue"; label="Overdue"; dueOver++; }
+    else if(nowMin >= tMin-15){ status="due"; label="Due now"; dueOver++; }
+
+    const takenRec = isTaken ? doses.find(d=>d.key===s.key) : null;
+    const div = document.createElement("div");
+    div.className = "pill-due "+status;
+    div.innerHTML = `
+      <div>
+        <div class="pill-name">${esc(s.name)} <span class="tag ${status}">${label}</span></div>
+        <div class="pill-meta">Scheduled ${s.time}${s.dose? " · "+esc(s.dose):""}${takenRec? " · taken "+takenRec.at : ""}</div>
+      </div>
+      <div style="flex:0 0 auto">
+        ${isTaken
+          ? `<button class="btn ghost small undo">Undo</button>`
+          : `<button class="btn small take">✓ Took it</button>`}
+      </div>`;
+    if(isTaken){
+      div.querySelector(".undo").onclick = () => {
+        save(STORE.doses, load(STORE.doses).filter(d=>d.key!==s.key));
+        renderToday(); toast("Marked as not taken");
+      };
+    } else {
+      div.querySelector(".take").onclick = () => { logDose(s); renderToday(); toast("Logged — well done 👍"); };
+    }
+    list.appendChild(div);
+  });
+
+  const total = schedule.length;
+  const adh = total ? Math.round(taken/total*100) : 0;
+  $("#statTaken").textContent = taken;
+  $("#statDue").textContent = dueOver;
+  $("#statAdh").textContent = adh+"%";
+  $("#adhBar").style.width = adh+"%";
+  $("#adhBar").style.background = adh>=80?"var(--good)":adh>=50?"var(--warn)":"var(--bad)";
+}
+
+function logDose(s){
+  const day = todayStr();
+  const d = load(STORE.doses);
+  if(d.some(x=>x.key===s.key)) return;
+  d.push({ key:s.key, medId:s.medId, name:s.name, dose:s.dose, day, scheduled:s.time,
+           at:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), ts:Date.now() });
+  save(STORE.doses, d);
+}
+
+/* ================= ALARM ENGINE ================= */
+const ALARM = {
+  active:null,        // current dose object on screen
+  alarmed:{},         // key -> true (already rang this occurrence, awaiting action)
+  snoozed:{},         // key -> timestamp until which to stay quiet
+  audioCtx:null, osc:null, gain:null, beepTimer:null
+};
+
+function speechWarmup(){
+  // unlock audio + speech on first user gesture
+  try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance(""); speechSynthesis.speak(u); } }catch(e){}
+  try{ ensureAudio(); if(ALARM.audioCtx && ALARM.audioCtx.state==="suspended") ALARM.audioCtx.resume(); }catch(e){}
+}
+
+function pickVoice(lang){
+  const voices = (window.speechSynthesis && speechSynthesis.getVoices()) || [];
+  if(lang==="mk"){ return voices.find(v=>/^mk/i.test(v.lang)) || null; }
+  if(lang==="en"){ return voices.find(v=>/^en/i.test(v.lang)) || null; }
+  return null; // device default
+}
+function announce(name, dose){
+  const set = getSettings();
+  if(!set.voice || !window.speechSynthesis) return;
+  let text;
+  if(set.lang==="mk"){ text = `Време е да го земете лекот. ${name}. ${dose||""}`; }
+  else { text = `Time to take your medication. ${name}. ${dose||""}`; }
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = pickVoice(set.lang); if(v){ u.voice=v; u.lang=v.lang; }
+    else if(set.lang==="mk") u.lang="mk-MK"; else if(set.lang==="en") u.lang="en-US";
+    u.rate=0.92; u.pitch=1; u.volume=1;
+    speechSynthesis.speak(u);
+    // repeat after a short pause
+    setTimeout(()=>{ if(ALARM.active){ try{ speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }catch(e){} } }, 4500);
+  }catch(e){}
+}
+
+function ensureAudio(){
+  if(ALARM.audioCtx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) return;
+  ALARM.audioCtx = new AC();
+}
+function startTone(){
+  const set = getSettings();
+  if(!set.sound) return;
+  ensureAudio(); if(!ALARM.audioCtx) return;
+  if(ALARM.audioCtx.state==="suspended") ALARM.audioCtx.resume();
+  stopTone();
+  const beep = () => {
+    const ctx = ALARM.audioCtx;
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type="square"; o.frequency.value=880;
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime+0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.32);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime+0.34);
+  };
+  beep(); ALARM.beepTimer = setInterval(beep, 900);
+}
+function stopTone(){ if(ALARM.beepTimer){ clearInterval(ALARM.beepTimer); ALARM.beepTimer=null; } }
+
+function doVibrate(){
+  const set = getSettings();
+  if(set.vibrate && navigator.vibrate){ navigator.vibrate([600,300,600,300,600]); ALARM._vib=setInterval(()=>navigator.vibrate([600,300,600,300,600]),2600); }
+}
+function stopVibrate(){ if(ALARM._vib){ clearInterval(ALARM._vib); ALARM._vib=null; } if(navigator.vibrate) navigator.vibrate(0); }
+
+function showAlarm(dose){
+  ALARM.active = dose;
+  $("#alPname").textContent = dose.name;
+  $("#alPdose").textContent = dose.dose || "";
+  $("#alPtime").textContent = "Scheduled for " + dose.time;
+  $("#alarm").classList.add("show");
+  startTone(); doVibrate(); announce(dose.name, dose.dose);
+  // also fire an OS notification (visible if app backgrounded)
+  notify(dose);
+}
+function closeAlarm(){
+  ALARM.active=null; $("#alarm").classList.remove("show");
+  stopTone(); stopVibrate();
+  try{ speechSynthesis.cancel(); }catch(e){}
+}
+$("#alTook").onclick = () => {
+  if(ALARM.active){ logDose(ALARM.active); ALARM.alarmed[ALARM.active.key]=true; toast("Logged — well done 👍"); }
+  closeAlarm(); renderToday();
+};
+$("#alSnooze").onclick = () => {
+  const set = getSettings();
+  if(ALARM.active){ ALARM.snoozed[ALARM.active.key] = Date.now() + set.snooze*60000; delete ALARM.alarmed[ALARM.active.key]; toast("Snoozed "+set.snooze+" min"); }
+  closeAlarm();
+};
+
+function checkDue(){
+  if(ALARM.active) return;            // already ringing
+  const day = todayStr();
+  const takenSet = new Set(load(STORE.doses).filter(d=>d.day===day).map(d=>d.key));
+  const now = new Date(); const nowMin = now.getHours()*60+now.getMinutes();
+  const sched = todaySchedule();
+  for(const s of sched){
+    if(takenSet.has(s.key)) continue;
+    const snz = ALARM.snoozed[s.key];
+    if(snz && Date.now() < snz) continue;       // snoozing
+    if(ALARM.alarmed[s.key] && !(snz && Date.now()>=snz)) {
+      // already alerted and not re-armed by snooze
+      if(!snz) continue;
+    }
+    const [h,mi] = s.time.split(":").map(Number);
+    const tMin = h*60+mi;
+    // ring from scheduled time up to 3h overdue
+    if(nowMin >= tMin && nowMin <= tMin + 180){
+      showAlarm(s);
+      return;
+    }
+  }
+}
+
+/* ---- web notification (works when tab backgrounded / via service worker) ---- */
+async function notify(dose){
+  if(!("Notification" in window) || Notification.permission!=="granted") return;
+  const body = (dose.dose? dose.dose+" · " : "") + "Scheduled "+dose.time;
+  try{
+    const reg = await navigator.serviceWorker?.ready;
+    const opts = { body, tag:"pk-"+dose.key, renotify:true, requireInteraction:true,
+                   vibrate:[600,300,600], icon:"icons/icon-192.png", badge:"icons/icon-192.png" };
+    if(reg) reg.showNotification("💊 Time for "+dose.name, opts);
+    else new Notification("💊 Time for "+dose.name, opts);
+  }catch(e){}
+}
+
+/* ================= WELL-BEING ================= */
+const wbScores = {};
+$$(".scale").forEach(sc => {
+  sc.querySelectorAll("button").forEach(b => b.onclick = () => {
+    sc.querySelectorAll("button").forEach(x=>x.classList.remove("sel"));
+    b.classList.add("sel");
+    wbScores[sc.dataset.scale] = Number(b.dataset.v);
+  });
+});
+
+function loadWbForDate(date){
+  Object.keys(wbScores).forEach(k=>delete wbScores[k]);
+  $$(".scale button").forEach(b=>b.classList.remove("sel"));
+  $("#wbSleep").value=""; $("#wbOff").value=""; $("#wbNotes").value="";
+  const rec = load(STORE.wb).find(w=>w.date===date);
+  if(rec){
+    ["mood","tremor","stiffness","energy"].forEach(k=>{
+      if(rec[k]){ wbScores[k]=rec[k];
+        const sc=$(`.scale[data-scale="${k}"]`); const b=sc&&sc.querySelector(`button[data-v="${rec[k]}"]`); if(b)b.classList.add("sel"); }
+    });
+    $("#wbSleep").value = rec.sleep ?? "";
+    $("#wbOff").value = rec.off ?? "";
+    $("#wbNotes").value = rec.notes || "";
+  }
+}
+$("#wbDate").addEventListener("change", e => loadWbForDate(e.target.value));
+
+$("#saveWb").onclick = () => {
+  const date = $("#wbDate").value || todayStr();
+  let wb = load(STORE.wb).filter(w=>w.date!==date);
+  wb.push({
+    date,
+    mood:wbScores.mood||null, tremor:wbScores.tremor||null,
+    stiffness:wbScores.stiffness||null, energy:wbScores.energy||null,
+    sleep: $("#wbSleep").value ? Number($("#wbSleep").value):null,
+    off: $("#wbOff").value ? Number($("#wbOff").value):null,
+    notes: $("#wbNotes").value.trim(), ts:Date.now()
+  });
+  wb.sort((a,b)=>b.date.localeCompare(a.date));
+  save(STORE.wb, wb);
+  toast("Well-being record saved 💚");
+  renderHistory();
+};
+
+/* ================= HISTORY ================= */
+function renderHistory(){
+  const wb = load(STORE.wb).sort((a,b)=>b.date.localeCompare(a.date));
+  const wel = $("#wbHistory");
+  const face = v => v? ["","😣","😟","😐","🙂","😄"][v] : "—";
+  wel.innerHTML = wb.length ? "" : `<div class="empty">No well-being records yet.</div>`;
+  wb.forEach(w => {
+    const d = document.createElement("div"); d.className="hist-item";
+    d.innerHTML = `<div class="flex-between">
+        <b>${w.date}</b>
+        <span class="small muted">Well-being ${face(w.mood)} ${w.mood?w.mood+"/5":""}</span>
+      </div>
+      <div class="small muted">
+        ${w.tremor?`Tremor ${w.tremor}/5 · `:""}${w.stiffness?`Stiffness ${w.stiffness}/5 · `:""}${w.energy?`Energy ${w.energy}/5 · `:""}${w.sleep!=null?`Sleep ${w.sleep}h · `:""}${w.off!=null?`Off ×${w.off}`:""}
+      </div>
+      ${w.notes?`<div class="small" style="margin-top:4px">📝 ${esc(w.notes)}</div>`:""}`;
+    wel.appendChild(d);
+  });
+
+  const doses = load(STORE.doses).sort((a,b)=>b.ts-a.ts);
+  const dl = $("#doseHistory");
+  dl.innerHTML = doses.length ? "" : `<div class="empty">No medication taken yet.</div>`;
+  const byDay = {};
+  doses.forEach(d => (byDay[d.day]=byDay[d.day]||[]).push(d));
+  Object.keys(byDay).sort((a,b)=>b.localeCompare(a)).forEach(day => {
+    const grp = document.createElement("div"); grp.className="hist-item";
+    const items = byDay[day].sort((a,b)=>(a.scheduled||"").localeCompare(b.scheduled||""))
+      .map(d=>`<div class="small muted">✓ ${esc(d.name)}${d.dose?" ("+esc(d.dose)+")":""} — scheduled ${d.scheduled||"?"}, taken ${d.at}</div>`).join("");
+    grp.innerHTML = `<b>${day}</b>${items}`;
+    dl.appendChild(grp);
+  });
+}
+
+/* ================= EXPORT / CLEAR ================= */
+function download(name, content, type){
+  const blob = new Blob([content], {type});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  URL.revokeObjectURL(a.href);
+}
+$("#exportBtn").onclick = () => {
+  const data = { exported:new Date().toISOString(), meds:load(STORE.meds), doses:load(STORE.doses), wellbeing:load(STORE.wb) };
+  download(`parkinson-data-${todayStr()}.json`, JSON.stringify(data,null,2), "application/json");
+};
+$("#exportCsv").onclick = () => {
+  let rows = [["type","date","name","dose","scheduled","taken_at","wellbeing","tremor","stiffness","energy","sleep_h","off_episodes","notes"]];
+  load(STORE.doses).forEach(d=>rows.push(["dose",d.day,d.name,d.dose||"",d.scheduled||"",d.at||"","","","","","","",""]));
+  load(STORE.wb).forEach(w=>rows.push(["wellbeing",w.date,"","","","",w.mood||"",w.tremor||"",w.stiffness||"",w.energy||"",w.sleep??"",w.off??"",(w.notes||"").replace(/\n/g," ")]));
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  download(`parkinson-log-${todayStr()}.csv`, csv, "text/csv");
+};
+$("#clearBtn").onclick = () => {
+  if(!confirm("This deletes ALL pills, logs and records on this device. Continue?")) return;
+  if(!confirm("Are you absolutely sure? This cannot be undone.")) return;
+  [STORE.meds,STORE.doses,STORE.wb].forEach(k=>localStorage.removeItem(k));
+  resetMedForm(); renderMeds(); renderToday(); renderHistory();
+  loadWbForDate($("#wbDate").value);
+  toast("All data cleared");
+};
+
+/* ================= SETTINGS UI ================= */
+function bindSettings(){
+  const s = getSettings();
+  $("#setVoice").checked=s.voice; $("#setSound").checked=s.sound; $("#setVibrate").checked=s.vibrate;
+  $("#setLang").value=s.lang; $("#setSnooze").value=s.snooze;
+  const upd = () => setSettings({
+    voice:$("#setVoice").checked, sound:$("#setSound").checked, vibrate:$("#setVibrate").checked,
+    lang:$("#setLang").value, snooze:Math.max(1,Number($("#setSnooze").value)||10)
+  });
+  ["#setVoice","#setSound","#setVibrate","#setLang","#setSnooze"].forEach(id=>$(id).addEventListener("change", upd));
+}
+
+/* ================= TEST ALARM ================= */
+$("#testAlarm").onclick = () => {
+  speechWarmup();
+  showAlarm({ name:"Levodopa/Carbidopa", dose:"100/25 mg · 1 tablet", time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), key:"__test__" });
+};
+
+/* ================= PWA: install + notifications + SW ================= */
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredPrompt=e; $("#installBanner").style.display="flex"; });
+$("#installBtn").onclick = async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; $("#installBanner").style.display="none";
+};
+window.addEventListener("appinstalled", ()=> $("#installBanner").style.display="none");
+
+function refreshNotifBanner(){
+  const show = ("Notification" in window) && Notification.permission==="default";
+  $("#notifBanner").style.display = show ? "flex" : "none";
+}
+$("#notifBtn").onclick = async () => {
+  speechWarmup();
+  if("Notification" in window){ try{ await Notification.requestPermission(); }catch(e){} }
+  refreshNotifBanner();
+};
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=> navigator.serviceWorker.register("sw.js").catch(()=>{}));
+  navigator.serviceWorker.addEventListener?.("message", e=>{
+    if(e.data && e.data.type==="alarm-action"){ renderToday(); }
+  });
+}
+
+/* ---------- util ---------- */
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- init ---------- */
+$("#wbDate").value = todayStr();
+resetMedForm();
+renderMeds();
+renderToday();
+renderHistory();
+loadWbForDate(todayStr());
+bindSettings();
+refreshNotifBanner();
+if(window.speechSynthesis){ speechSynthesis.onvoiceschanged = ()=>{}; speechSynthesis.getVoices(); }
+// warm up audio/speech on the very first tap anywhere
+document.addEventListener("pointerdown", function warm(){ speechWarmup(); document.removeEventListener("pointerdown", warm); }, {once:true});
+
+// alarm loop + keep "Today" fresh
+checkDue();
+setInterval(()=>{ checkDue(); if($("#today").classList.contains("active")) renderToday(); }, 15000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkDue(); });
+</script>
+<script src="native-bridge.js"></script>
+</body>
+</html>

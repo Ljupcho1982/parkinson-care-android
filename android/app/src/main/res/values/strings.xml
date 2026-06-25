@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Parkinson Care</string>
+    <string name="title_activity_main">Parkinson Care</string>
+    <string name="package_name">com.ljupcho.parkinsoncare</string>
+    <string name="custom_url_scheme">com.ljupcho.parkinsoncare</string>
+</resources>

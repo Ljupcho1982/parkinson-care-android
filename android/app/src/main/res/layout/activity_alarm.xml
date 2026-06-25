@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#D1142A"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="⏰ TIME FOR YOUR PILL"
+        android:textColor="#FFFFFF"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.08"
+        android:gravity="center" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🔔"
+        android:textSize="64sp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/txtName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Medication"
+        android:textColor="#FFFFFF"
+        android:textSize="46sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:lineSpacingMultiplier="1.05" />
+
+    <TextView
+        android:id="@+id/txtDose"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#FFE3E6"
+        android:textSize="26sp"
+        android:layout_marginTop="6dp"
+        android:gravity="center" />
+
+    <Button
+        android:id="@+id/btnTook"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="✓ I TOOK IT"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#15A24A"
+        android:paddingTop="22dp"
+        android:paddingBottom="22dp"
+        android:layout_marginTop="48dp" />
+
+    <Button
+        android:id="@+id/btnSnooze"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="⏰ SNOOZE"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:textColor="#B3000F"
+        android:backgroundTint="#FFFFFF"
+        android:paddingTop="22dp"
+        android:paddingBottom="22dp"
+        android:layout_marginTop="16dp" />
+
+</LinearLayout>
