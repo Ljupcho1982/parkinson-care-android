@@ -159,20 +159,24 @@ public class AlarmScheduler {
     private static void setExact(Context ctx, long whenMillis, PendingIntent pi) {
         AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
-        boolean canExact = true;
-        if (Build.VERSION.SDK_INT >= 31) canExact = am.canScheduleExactAlarms();
         try {
-            if (Build.VERSION.SDK_INT >= 23) {
-                if (canExact) {
-                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, whenMillis, pi);
-                } else {
-                    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, whenMillis, pi);
-                }
+            if (Build.VERSION.SDK_INT >= 21) {
+                // The real "alarm-clock" API: fires even in deep doze, needs no special permission,
+                // and grants a temporary allowlist so we CAN start the alarm UI/audio from the background.
+                Intent showIntent = new Intent(ctx, MainActivity.class);
+                showIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                int sf = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= 23) sf |= PendingIntent.FLAG_IMMUTABLE;
+                PendingIntent show = PendingIntent.getActivity(ctx, 424242, showIntent, sf);
+                am.setAlarmClock(new AlarmManager.AlarmClockInfo(whenMillis, show), pi);
             } else {
                 am.setExact(AlarmManager.RTC_WAKEUP, whenMillis, pi);
             }
-        } catch (SecurityException e) {
-            am.set(AlarmManager.RTC_WAKEUP, whenMillis, pi);
+        } catch (Exception e) {
+            try {
+                if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, whenMillis, pi);
+                else am.set(AlarmManager.RTC_WAKEUP, whenMillis, pi);
+            } catch (Exception ignored) {}
         }
     }
 }
