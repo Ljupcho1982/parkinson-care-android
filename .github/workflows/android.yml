@@ -47,13 +47,13 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk parkinson-care.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ParkinsonCare.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: parkinson-care-apk
-          path: parkinson-care.apk
+          name: ParkinsonCare-apk
+          path: ParkinsonCare.apk
           if-no-files-found: error
 
       - name: Publish APK to GitHub Release
@@ -61,10 +61,10 @@ jobs:
         with:
           tag_name: latest
           name: Parkinson Care (latest build)
-          files: parkinson-care.apk
+          files: ParkinsonCare.apk
           body: |
-            Latest debug build of the Parkinson Care Android app.
-            Download **parkinson-care.apk** below and install it on your phone
+            Latest build of the Parkinson Care Android app.
+            Download **ParkinsonCare.apk** below and install it on your phone
             (you may need to allow "Install unknown apps" for your browser/file manager).
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
