@@ -29,13 +29,39 @@
     return { lang: s.lang || "auto", voice: s.voice !== false, sound: s.sound !== false, vibrate: s.vibrate !== false, snooze: Number(s.snooze) || 10 };
   }
 
+  function renderStatus(st) {
+    if (!st) return;
+    let bar = document.getElementById("pkStatus");
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "pkStatus";
+      bar.style.cssText = "margin:0 0 14px;padding:12px 14px;border-radius:12px;font-size:.9rem;font-weight:600;line-height:1.4";
+      const wrap = document.querySelector(".wrap");
+      if (wrap) wrap.insertBefore(bar, wrap.firstChild);
+    }
+    const ok = st.exactAllowed && st.notificationsAllowed;
+    const next = st.nextAt ? new Date(st.nextAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
+    let msg;
+    if (!st.notificationsAllowed) msg = "⚠️ Notifications are OFF — enable them in Android settings so alarms can show.";
+    else if (!st.exactAllowed) msg = "⚠️ Exact alarms are OFF — tap here to allow them.";
+    else if (!st.scheduledCount) msg = "ℹ️ No pills scheduled yet. Add a medication in “My Pills”.";
+    else msg = "✅ " + st.scheduledCount + " alarm(s) set · next at " + next;
+    bar.textContent = msg;
+    bar.style.background = ok && st.scheduledCount ? "rgba(46,204,113,.15)" : "rgba(244,183,64,.18)";
+    bar.style.color = ok && st.scheduledCount ? "#1c7d46" : "#8a6500";
+    bar.onclick = (!st.exactAllowed) ? () => { try { PillAlarm.ensurePermissions(); } catch (e) {} } : null;
+    bar.style.cursor = (!st.exactAllowed) ? "pointer" : "default";
+  }
+
   let t = null;
   async function syncAlarms() {
     try {
       const s = settings();
-      await PillAlarm.schedule({ items: buildItems(), lang: s.lang, voice: s.voice, sound: s.sound, vibrate: s.vibrate, snoozeMinutes: s.snooze });
+      const st = await PillAlarm.schedule({ items: buildItems(), lang: s.lang, voice: s.voice, sound: s.sound, vibrate: s.vibrate, snoozeMinutes: s.snooze });
+      renderStatus(st);
     } catch (e) { console.warn("alarm sync failed", e); }
   }
+  async function refreshStatus() { try { renderStatus(await PillAlarm.getStatus()); } catch (e) {} }
   function scheduleSoon() { clearTimeout(t); t = setTimeout(syncAlarms, 700); }
 
   // re-sync whenever the schedule or settings change
@@ -49,8 +75,9 @@
     // hide PWA-only banners inside the native app
     ["installBanner", "notifBanner"].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
 
-    try { await PillAlarm.requestPermissions(); } catch (e) {}
-    syncAlarms();
+    try { await PillAlarm.ensurePermissions(); } catch (e) {}
+    await syncAlarms();
+    refreshStatus();
 
     // make the "Test the alarm" button trigger the REAL native full-screen alarm
     const tb = document.getElementById("testAlarm");
