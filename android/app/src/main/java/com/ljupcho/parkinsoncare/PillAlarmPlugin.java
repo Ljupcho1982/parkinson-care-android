@@ -106,32 +106,19 @@ public class PillAlarmPlugin extends Plugin {
 
     @PluginMethod
     public void test(PluginCall call) {
-        final String name = call.getString("name", "Medication");
-        final String dose = call.getString("dose", "");
-        Intent svc = new Intent(getContext(), AlarmService.class).setAction(AlarmService.ACTION_FIRE);
-        svc.putExtra("name", name);
-        svc.putExtra("dose", dose);
-        svc.putExtra("lang", call.getString("lang", "auto"));
-        svc.putExtra("voice", Boolean.TRUE.equals(call.getBoolean("voice", true)));
-        svc.putExtra("sound", Boolean.TRUE.equals(call.getBoolean("sound", true)));
-        svc.putExtra("vibrate", Boolean.TRUE.equals(call.getBoolean("vibrate", true)));
-        svc.putExtra("notifId", 999000);
-        svc.putExtra("reqCode", 999000);
-        try { ContextCompat.startForegroundService(getContext(), svc); }
-        catch (Exception e) { try { getContext().startService(svc); } catch (Exception ignored) {} }
-
-        // App is in the foreground here, so launch the full-screen alarm directly from the Activity
-        // (foreground activity starts are allowed; this guarantees the red screen shows for "Test now").
-        final android.app.Activity act = getActivity();
-        if (act != null) {
-            final Intent ui = new Intent(act, AlarmActivity.class);
-            ui.putExtra("name", name);
-            ui.putExtra("dose", dose);
-            ui.putExtra("notifId", 999000);
-            ui.putExtra("reqCode", 999000);
-            ui.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            act.runOnUiThread(() -> { try { act.startActivity(ui); } catch (Exception ignored) {} });
-        }
+        // App is in the foreground here, so launch the full-screen alarm directly (always allowed).
+        Context ctx = getContext();
+        Intent ui = new Intent(ctx, AlarmActivity.class);
+        ui.putExtra("name", call.getString("name", "Medication"));
+        ui.putExtra("dose", call.getString("dose", ""));
+        ui.putExtra("lang", call.getString("lang", "auto"));
+        ui.putExtra("voice", Boolean.TRUE.equals(call.getBoolean("voice", true)));
+        ui.putExtra("sound", Boolean.TRUE.equals(call.getBoolean("sound", true)));
+        ui.putExtra("vibrate", Boolean.TRUE.equals(call.getBoolean("vibrate", true)));
+        ui.putExtra("notifId", 999000);
+        ui.putExtra("reqCode", 999000);
+        ui.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        try { ctx.startActivity(ui); } catch (Exception ignored) {}
         call.resolve();
     }
 
