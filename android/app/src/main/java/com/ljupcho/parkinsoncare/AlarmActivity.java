@@ -124,48 +124,58 @@ public class AlarmActivity extends Activity {
     private int ttsStatus = -99;
 
     private void speakNow() {
-        if (ttsStatus != TextToSpeech.SUCCESS || tts == null) return;
-        {
-            final String mkText = "Време е да го земете лекот. " + name + ". " + (dose == null ? "" : dose);
-            final String enText = "Time to take your medication. " + name + ". " + (dose == null ? "" : dose);
-            final Locale mkLoc = new Locale("mk", "MK");
-
-            boolean haveMk = isAvail(mkLoc);
-            boolean haveEn = isAvail(Locale.US) || isAvail(Locale.ENGLISH);
-
-            String text;
-            // Prefer Macedonian if the user chose it (or device is set to MK) and a MK voice exists;
-            // otherwise English; otherwise whatever voice the device actually has (so SOMETHING speaks).
-            boolean preferMk = "mk".equals(lang) || (("auto".equals(lang) || lang == null)
-                    && Locale.getDefault().getLanguage().equals("mk"));
-            if (preferMk && haveMk) { tts.setLanguage(mkLoc); text = mkText; }
-            else if (haveEn) { tts.setLanguage(isAvail(Locale.US) ? Locale.US : Locale.ENGLISH); text = enText; }
-            else if (haveMk) { tts.setLanguage(mkLoc); text = mkText; }
-            else { text = enText; /* keep engine default voice — it produced the example, so it can speak */ }
-
-            tts.setSpeechRate(0.92f);
-            // Route voice to the alarm stream the modern way (so it's audible at alarm volume).
-            try {
-                tts.setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
-            } catch (Exception ignored) {}
-
-            // Duck (mute) the alarm ring while speaking so the voice is clearly audible.
-            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-                @Override public void onStart(String id) { if (id != null && id.startsWith("pk")) duckRing(true); }
-                @Override public void onDone(String id) { if ("end".equals(id)) duckRing(false); }
-                @Override public void onError(String id) { duckRing(false); }
-            });
-
-            // ring a moment first, then announce 3x with the ring muted (default audio routing — no deprecated stream param)
-            tts.playSilentUtterance(1200, TextToSpeech.QUEUE_FLUSH, "lead");
-            tts.speak(text, TextToSpeech.QUEUE_ADD, null, "pk1");
-            tts.playSilentUtterance(900, TextToSpeech.QUEUE_ADD, "g1");
-            tts.speak(text, TextToSpeech.QUEUE_ADD, null, "pk2");
-            tts.playSilentUtterance(900, TextToSpeech.QUEUE_ADD, "g2");
-            tts.speak(text, TextToSpeech.QUEUE_ADD, null, "end");
+        StringBuilder dbg = new StringBuilder("voice: init=");
+        dbg.append(ttsStatus == TextToSpeech.SUCCESS ? "OK" : ("ERR(" + ttsStatus + ")"));
+        if (ttsStatus != TextToSpeech.SUCCESS || tts == null) {
+            dbg.append(tts == null ? " engine=null" : " (no engine)");
+            setDebug(dbg.toString());
+            return;
         }
+        try { dbg.append(" eng=").append(tts.getDefaultEngine()); } catch (Exception ignored) {}
+
+        final String mkText = "Време е да го земете лекот. " + name + ". " + (dose == null ? "" : dose);
+        final String enText = "Time to take your medication. " + name + ". " + (dose == null ? "" : dose);
+        final Locale mkLoc = new Locale("mk", "MK");
+
+        boolean haveMk = isAvail(mkLoc);
+        boolean haveEn = isAvail(Locale.US) || isAvail(Locale.ENGLISH);
+        dbg.append(" en=").append(haveEn).append(" mk=").append(haveMk);
+
+        String text;
+        boolean preferMk = "mk".equals(lang) || (("auto".equals(lang) || lang == null)
+                && Locale.getDefault().getLanguage().equals("mk"));
+        if (preferMk && haveMk) { tts.setLanguage(mkLoc); text = mkText; }
+        else if (haveEn) { tts.setLanguage(isAvail(Locale.US) ? Locale.US : Locale.ENGLISH); text = enText; }
+        else if (haveMk) { tts.setLanguage(mkLoc); text = mkText; }
+        else { text = enText; }
+
+        tts.setSpeechRate(0.92f);
+        try {
+            tts.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
+        } catch (Exception ignored) {}
+
+        tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+            @Override public void onStart(String id) { if (id != null && id.startsWith("pk")) duckRing(true); }
+            @Override public void onDone(String id) { if ("end".equals(id)) duckRing(false); }
+            @Override public void onError(String id) { duckRing(false); }
+        });
+
+        int r1 = tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "pk1");
+        tts.playSilentUtterance(900, TextToSpeech.QUEUE_ADD, "g1");
+        tts.speak(text, TextToSpeech.QUEUE_ADD, null, "pk2");
+        tts.playSilentUtterance(900, TextToSpeech.QUEUE_ADD, "g2");
+        tts.speak(text, TextToSpeech.QUEUE_ADD, null, "end");
+        dbg.append(" speak=").append(r1 == TextToSpeech.SUCCESS ? "OK" : ("ERR(" + r1 + ")"));
+        setDebug(dbg.toString());
+    }
+
+    private void setDebug(final String s) {
+        try {
+            TextView t = findViewById(R.id.txtDebug);
+            if (t != null) t.setText(s);
+        } catch (Exception ignored) {}
     }
 
     private void duckRing(boolean quiet) {
