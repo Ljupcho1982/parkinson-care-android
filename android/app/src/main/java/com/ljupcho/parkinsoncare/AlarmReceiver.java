@@ -60,6 +60,16 @@ public class AlarmReceiver extends BroadcastReceiver {
         Uri alarm = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
         if (alarm == null) alarm = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
+        // "I took it" / "Snooze" buttons directly on the notification (usable from the lock screen).
+        Intent tookIntent = new Intent(context, AlarmActionReceiver.class)
+                .setAction(AlarmActionReceiver.ACTION_TOOK).putExtra("notifId", notifId);
+        PendingIntent tookPi = PendingIntent.getBroadcast(context, notifId * 10 + 1, tookIntent, piFlags);
+        Intent snoozeIntent = new Intent(context, AlarmActionReceiver.class)
+                .setAction(AlarmActionReceiver.ACTION_SNOOZE);
+        snoozeIntent.putExtras(intent);
+        snoozeIntent.putExtra("notifId", notifId);
+        PendingIntent snoozePi = PendingIntent.getBroadcast(context, notifId * 10 + 2, snoozeIntent, piFlags);
+
         NotificationCompat.Builder b = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
                 .setContentTitle("💊 Time for " + name)
@@ -70,7 +80,9 @@ public class AlarmReceiver extends BroadcastReceiver {
                 .setAutoCancel(true)
                 .setOngoing(true)
                 .setFullScreenIntent(fullPi, true)
-                .setContentIntent(fullPi);
+                .setContentIntent(fullPi)
+                .addAction(0, "✓ I took it", tookPi)
+                .addAction(0, "⏰ Snooze", snoozePi);
         // Pre-Android-8 the sound/vibration live on the notification itself.
         if (Build.VERSION.SDK_INT < 26) {
             b.setSound(alarm).setVibrate(new long[]{0, 600, 300, 600, 300, 600});

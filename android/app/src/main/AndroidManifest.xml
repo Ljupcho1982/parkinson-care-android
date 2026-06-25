@@ -56,6 +56,11 @@
             android:name=".AlarmReceiver"
             android:exported="false" />
 
+        <!-- Handles the notification's "I took it" / "Snooze" buttons -->
+        <receiver
+            android:name=".AlarmActionReceiver"
+            android:exported="false" />
+
         <!-- Re-arms alarms after reboot -->
         <receiver
             android:name=".BootReceiver"
