@@ -17,6 +17,7 @@ import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
@@ -133,13 +134,28 @@ public class AlarmActivity extends Activity {
             }
 
             tts.setSpeechRate(0.92f);
+
+            // Duck (mute) the alarm ring while speaking so the voice is clearly audible.
+            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                @Override public void onStart(String id) { if (id != null && id.startsWith("pk")) duckRing(true); }
+                @Override public void onDone(String id) { if ("end".equals(id)) duckRing(false); }
+                @Override public void onError(String id) { duckRing(false); }
+            });
+
             Bundle params = new Bundle();
             params.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM);
-            for (int i = 1; i <= 4; i++) {
-                tts.speak(text, i == 1 ? TextToSpeech.QUEUE_FLUSH : TextToSpeech.QUEUE_ADD, params, "pk" + i);
-                tts.playSilentUtterance(1400, TextToSpeech.QUEUE_ADD, "gap" + i);
-            }
+            // ring a moment first, then announce 3x with the ring muted
+            tts.playSilentUtterance(1200, TextToSpeech.QUEUE_FLUSH, "lead");
+            tts.speak(text, TextToSpeech.QUEUE_ADD, params, "pk1");
+            tts.playSilentUtterance(900, TextToSpeech.QUEUE_ADD, "g1");
+            tts.speak(text, TextToSpeech.QUEUE_ADD, params, "pk2");
+            tts.playSilentUtterance(900, TextToSpeech.QUEUE_ADD, "g2");
+            tts.speak(text, TextToSpeech.QUEUE_ADD, params, "end");
         });
+    }
+
+    private void duckRing(boolean quiet) {
+        try { if (player != null) player.setVolume(quiet ? 0f : 1f, quiet ? 0f : 1f); } catch (Exception ignored) {}
     }
 
     private void stopRingAndVibrate() {
