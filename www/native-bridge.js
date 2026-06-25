@@ -39,18 +39,26 @@
       const wrap = document.querySelector(".wrap");
       if (wrap) wrap.insertBefore(bar, wrap.firstChild);
     }
+    const fmt = ms => ms ? new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
     const ok = st.exactAllowed && st.notificationsAllowed;
-    const next = st.nextAt ? new Date(st.nextAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
-    let msg;
-    if (!st.notificationsAllowed) msg = "⚠️ Notifications are OFF — enable them in Android settings so alarms can show.";
-    else if (!st.exactAllowed) msg = "⚠️ Exact alarms are OFF — tap here to allow them.";
-    else if (!st.scheduledCount) msg = "ℹ️ No pills scheduled yet. Add a medication in “My Pills”.";
-    else msg = "✅ " + st.scheduledCount + " alarm(s) set · next at " + next;
-    bar.textContent = msg;
+    const needFix = !st.exactAllowed || !st.notificationsAllowed;
+    let head;
+    if (!st.notificationsAllowed) head = "⚠️ Notifications OFF — tap to fix";
+    else if (!st.exactAllowed) head = "⚠️ Exact alarms OFF — tap to fix";
+    else if (!st.scheduledCount) head = "ℹ️ No pills scheduled — add one in “My Pills”";
+    else head = "✅ " + st.scheduledCount + " alarm(s) set · next at " + fmt(st.nextAt);
+
+    const lastFired = st.lastFiredAt
+      ? "Last alarm fired: " + fmt(st.lastFiredAt) + (st.lastFiredName ? " (" + st.lastFiredName + ")" : "")
+      : "Last alarm fired: never yet";
+    const perms = "Notifications: " + (st.notificationsAllowed ? "on" : "OFF") + " · Exact alarms: " + (st.exactAllowed ? "on" : "OFF");
+
+    bar.innerHTML = "<div>" + head + "</div>" +
+      "<div style='font-weight:400;opacity:.85;margin-top:4px;font-size:.82rem'>" + perms + "<br>" + lastFired + "</div>";
     bar.style.background = ok && st.scheduledCount ? "rgba(46,204,113,.15)" : "rgba(244,183,64,.18)";
     bar.style.color = ok && st.scheduledCount ? "#1c7d46" : "#8a6500";
-    bar.onclick = (!st.exactAllowed) ? () => { try { PillAlarm.ensurePermissions(); } catch (e) {} } : null;
-    bar.style.cursor = (!st.exactAllowed) ? "pointer" : "default";
+    bar.onclick = needFix ? () => { try { PillAlarm.ensurePermissions(); } catch (e) {} } : null;
+    bar.style.cursor = needFix ? "pointer" : "default";
   }
 
   let t = null;
@@ -79,16 +87,33 @@
     await syncAlarms();
     refreshStatus();
 
-    // make the "Test the alarm" button trigger the REAL native full-screen alarm
+    // "Test now" — fires immediately while the app is open
     const tb = document.getElementById("testAlarm");
     if (tb) {
-      tb.textContent = "🔔 Test the real alarm (rings full-screen + voice)";
+      tb.textContent = "🔔 Test now (app open)";
       tb.onclick = async () => {
         const s = settings();
         try { await PillAlarm.test({ name: "Levodopa/Carbidopa", dose: "100/25 mg · 1 tablet", lang: s.lang, voice: s.voice, sound: s.sound, vibrate: s.vibrate }); }
         catch (e) { console.warn("native test failed", e); }
       };
+
+      // "Test in 15s then lock" — fires via the REAL scheduled path so we can verify closed/locked behaviour
+      const b2 = document.createElement("button");
+      b2.className = tb.className;
+      b2.style.marginTop = "8px";
+      b2.textContent = "🔒 Test in 15 sec — then LOCK the phone";
+      b2.onclick = async () => {
+        const s = settings();
+        try {
+          await PillAlarm.scheduleTest({ seconds: 15, lang: s.lang, voice: s.voice, sound: s.sound, vibrate: s.vibrate });
+          alert("Now LOCK your phone (press the power button). The alarm should ring in about 15 seconds.");
+        } catch (e) { console.warn("scheduleTest failed", e); }
+      };
+      tb.parentNode.insertBefore(b2, tb.nextSibling);
     }
+
+    // keep the status line current (so 'Last alarm fired' updates after a test)
+    setInterval(refreshStatus, 4000);
   });
 
   // keep alarms fresh when app returns to foreground

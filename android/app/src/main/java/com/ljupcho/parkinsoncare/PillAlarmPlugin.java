@@ -29,6 +29,18 @@ public class PillAlarmPlugin extends Plugin {
     @PluginMethod
     public void ensurePermissions(PluginCall call) {
         Context ctx = getContext();
+        // 1) Notifications off? Open the app's notification settings.
+        if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) {
+            try {
+                Intent i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                i.putExtra(Settings.EXTRA_APP_PACKAGE, ctx.getPackageName());
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                ctx.startActivity(i);
+                call.resolve();
+                return;
+            } catch (Exception ignored) {}
+        }
+        // 2) Exact alarms off (Android 12+)? Open the system toggle.
         if (Build.VERSION.SDK_INT >= 31) {
             AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
             if (am != null && !am.canScheduleExactAlarms()) {
@@ -40,6 +52,17 @@ public class PillAlarmPlugin extends Plugin {
                 } catch (Exception ignored) {}
             }
         }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void scheduleTest(PluginCall call) {
+        AlarmScheduler.scheduleTestInSeconds(getContext(),
+                call.getInt("seconds", 15),
+                call.getString("lang", "auto"),
+                Boolean.TRUE.equals(call.getBoolean("voice", true)),
+                Boolean.TRUE.equals(call.getBoolean("sound", true)),
+                Boolean.TRUE.equals(call.getBoolean("vibrate", true)));
         call.resolve();
     }
 
@@ -115,6 +138,8 @@ public class PillAlarmPlugin extends Plugin {
         r.put("notificationsAllowed", notif);
         r.put("scheduledCount", count);
         r.put("nextAt", next == Long.MAX_VALUE ? 0 : next);
+        r.put("lastFiredAt", p.getLong("lastFiredAt", 0));
+        r.put("lastFiredName", p.getString("lastFiredName", ""));
         return r;
     }
 }

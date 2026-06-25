@@ -96,6 +96,16 @@ public class AlarmScheduler {
         setExact(ctx, when, pi);
     }
 
+    /** Schedules a one-off REAL alarm a few seconds out, so the user can lock the phone and test the actual path. */
+    public static void scheduleTestInSeconds(Context ctx, int seconds, String lang,
+                                             boolean voice, boolean sound, boolean vibrate) {
+        long when = System.currentTimeMillis() + (long) seconds * 1000L;
+        int reqCode = 888001;
+        PendingIntent pi = buildPI(ctx, reqCode, reqCode, "TEST — Levodopa", "100/25 mg · 1 tablet",
+                -1, -1, lang, voice, sound, vibrate, true); // isSnooze=true so it doesn't re-arm for "tomorrow"
+        setExact(ctx, when, pi);
+    }
+
     public static void scheduleSnooze(Context ctx, String name, String dose, String lang,
                                       boolean voice, boolean sound, boolean vibrate,
                                       int baseReqCode, int minutes) {
