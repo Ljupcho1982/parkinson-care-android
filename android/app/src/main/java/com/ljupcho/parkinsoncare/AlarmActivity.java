@@ -134,6 +134,12 @@ public class AlarmActivity extends Activity {
             else { text = enText; /* keep engine default voice — it produced the example, so it can speak */ }
 
             tts.setSpeechRate(0.92f);
+            // Route voice to the alarm stream the modern way (so it's audible at alarm volume).
+            try {
+                tts.setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
+            } catch (Exception ignored) {}
 
             // Duck (mute) the alarm ring while speaking so the voice is clearly audible.
             tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
@@ -142,15 +148,13 @@ public class AlarmActivity extends Activity {
                 @Override public void onError(String id) { duckRing(false); }
             });
 
-            Bundle params = new Bundle();
-            params.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM);
-            // ring a moment first, then announce 3x with the ring muted
+            // ring a moment first, then announce 3x with the ring muted (default audio routing — no deprecated stream param)
             tts.playSilentUtterance(1200, TextToSpeech.QUEUE_FLUSH, "lead");
-            tts.speak(text, TextToSpeech.QUEUE_ADD, params, "pk1");
+            tts.speak(text, TextToSpeech.QUEUE_ADD, null, "pk1");
             tts.playSilentUtterance(900, TextToSpeech.QUEUE_ADD, "g1");
-            tts.speak(text, TextToSpeech.QUEUE_ADD, params, "pk2");
+            tts.speak(text, TextToSpeech.QUEUE_ADD, null, "pk2");
             tts.playSilentUtterance(900, TextToSpeech.QUEUE_ADD, "g2");
-            tts.speak(text, TextToSpeech.QUEUE_ADD, params, "end");
+            tts.speak(text, TextToSpeech.QUEUE_ADD, null, "end");
         });
     }
 
