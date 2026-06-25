@@ -30,24 +30,36 @@ public class PillAlarmPlugin extends Plugin {
     @PluginMethod
     public void ensurePermissions(PluginCall call) {
         Context ctx = getContext();
+        String pkg = ctx.getPackageName();
         // 1) Notifications off? Open the app's notification settings.
         if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) {
             try {
                 Intent i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
-                i.putExtra(Settings.EXTRA_APP_PACKAGE, ctx.getPackageName());
+                i.putExtra(Settings.EXTRA_APP_PACKAGE, pkg);
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 ctx.startActivity(i);
                 call.resolve();
                 return;
             } catch (Exception ignored) {}
         }
-        // 2) Exact alarms off (Android 12+)? Open the system toggle.
+        // 2) "Appear on top" / draw-over-other-apps off? This is what lets the alarm screen
+        //    pop up from the background. Open the system toggle.
+        if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(ctx)) {
+            try {
+                Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + pkg));
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                ctx.startActivity(i);
+                call.resolve();
+                return;
+            } catch (Exception ignored) {}
+        }
+        // 3) Exact alarms off (Android 12+)? Open the system toggle.
         if (Build.VERSION.SDK_INT >= 31) {
             AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
             if (am != null && !am.canScheduleExactAlarms()) {
                 try {
                     Intent i = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
-                    i.setData(Uri.parse("package:" + ctx.getPackageName()));
+                    i.setData(Uri.parse("package:" + pkg));
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     ctx.startActivity(i);
                     call.resolve();
@@ -55,13 +67,13 @@ public class PillAlarmPlugin extends Plugin {
                 } catch (Exception ignored) {}
             }
         }
-        // 3) Battery optimization on? Ask to exempt the app (keeps alarms alive across most brands).
+        // 4) Battery optimization on? Ask to exempt the app.
         if (Build.VERSION.SDK_INT >= 23) {
             PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
-            if (pm != null && !pm.isIgnoringBatteryOptimizations(ctx.getPackageName())) {
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(pkg)) {
                 try {
                     Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                    i.setData(Uri.parse("package:" + ctx.getPackageName()));
+                    i.setData(Uri.parse("package:" + pkg));
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     ctx.startActivity(i);
                 } catch (Exception ignored) {}
@@ -135,6 +147,7 @@ public class PillAlarmPlugin extends Plugin {
             PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
             battery = pm != null && pm.isIgnoringBatteryOptimizations(ctx.getPackageName());
         }
+        boolean overlay = Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(ctx);
 
         SharedPreferences p = ctx.getSharedPreferences("pk_native", Context.MODE_PRIVATE);
         int count = 0;
@@ -159,6 +172,7 @@ public class PillAlarmPlugin extends Plugin {
         r.put("exactAllowed", exact);
         r.put("notificationsAllowed", notif);
         r.put("batteryUnrestricted", battery);
+        r.put("overlayAllowed", overlay);
         r.put("scheduledCount", count);
         r.put("nextAt", next == Long.MAX_VALUE ? 0 : next);
         r.put("lastFiredAt", p.getLong("lastFiredAt", 0));

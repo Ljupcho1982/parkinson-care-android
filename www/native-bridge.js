@@ -41,10 +41,12 @@
     }
     const fmt = ms => ms ? new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
     const battery = st.batteryUnrestricted !== false;
-    const ok = st.exactAllowed && st.notificationsAllowed && battery;
-    const needFix = !st.exactAllowed || !st.notificationsAllowed || !battery;
+    const overlay = st.overlayAllowed !== false;
+    const ok = st.exactAllowed && st.notificationsAllowed && battery && overlay;
+    const needFix = !st.exactAllowed || !st.notificationsAllowed || !battery || !overlay;
     let head;
     if (!st.notificationsAllowed) head = "⚠️ Notifications OFF — tap to fix";
+    else if (!overlay) head = "⚠️ “Appear on top” OFF — tap to allow (lets the alarm pop up)";
     else if (!st.exactAllowed) head = "⚠️ Exact alarms OFF — tap to fix";
     else if (!battery) head = "⚠️ Battery optimization ON — tap to allow (keeps alarms alive)";
     else if (!st.scheduledCount) head = "ℹ️ No pills scheduled — add one in “My Pills”";
@@ -54,6 +56,7 @@
       ? "Last alarm fired: " + fmt(st.lastFiredAt) + (st.lastFiredName ? " (" + st.lastFiredName + ")" : "")
       : "Last alarm fired: never yet";
     const perms = "Notifications: " + (st.notificationsAllowed ? "on" : "OFF")
+      + " · Appear-on-top: " + (overlay ? "on" : "OFF")
       + " · Exact alarms: " + (st.exactAllowed ? "on" : "OFF")
       + " · Battery: " + (battery ? "unrestricted" : "RESTRICTED");
 
