@@ -21,3 +21,5 @@ android/.idea/
 .DS_Store
 Thumbs.db
 .claude/
+
+upload-keystore.jks

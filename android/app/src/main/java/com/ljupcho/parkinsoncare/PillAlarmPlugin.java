@@ -67,13 +67,12 @@ public class PillAlarmPlugin extends Plugin {
                 } catch (Exception ignored) {}
             }
         }
-        // 4) Battery optimization on? Ask to exempt the app.
+        // 4) Battery optimization on? Open the battery-optimization settings list (no restricted permission).
         if (Build.VERSION.SDK_INT >= 23) {
             PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
             if (pm != null && !pm.isIgnoringBatteryOptimizations(pkg)) {
                 try {
-                    Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                    i.setData(Uri.parse("package:" + pkg));
+                    Intent i = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     ctx.startActivity(i);
                 } catch (Exception ignored) {}

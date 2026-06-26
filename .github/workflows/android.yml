@@ -49,22 +49,40 @@ jobs:
       - name: Rename APK
         run: cp android/app/build/outputs/apk/debug/app-debug.apk ParkinsonCare.apk
 
-      - name: Upload APK artifact
+      - name: Decode release keystore
+        run: echo "${{ secrets.PLAY_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+
+      - name: Build signed release AAB (for Google Play)
+        env:
+          PLAY_KEYSTORE_PATH: ${{ runner.temp }}/upload-keystore.jks
+          PLAY_STORE_PASSWORD: ${{ secrets.PLAY_STORE_PASSWORD }}
+          PLAY_KEY_ALIAS: ${{ secrets.PLAY_KEY_ALIAS }}
+          PLAY_KEY_PASSWORD: ${{ secrets.PLAY_KEY_PASSWORD }}
+        run: |
+          cd android
+          ./gradlew bundleRelease --no-daemon --stacktrace
+          cp app/build/outputs/bundle/release/app-release.aab ../ParkinsonCare.aab
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ParkinsonCare-apk
-          path: ParkinsonCare.apk
+          name: ParkinsonCare-build
+          path: |
+            ParkinsonCare.apk
+            ParkinsonCare.aab
           if-no-files-found: error
 
-      - name: Publish APK to GitHub Release
+      - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: Parkinson Care (latest build)
-          files: ParkinsonCare.apk
+          files: |
+            ParkinsonCare.apk
+            ParkinsonCare.aab
           body: |
             Latest build of the Parkinson Care Android app.
-            Download **ParkinsonCare.apk** below and install it on your phone
-            (you may need to allow "Install unknown apps" for your browser/file manager).
+            • **ParkinsonCare.apk** — install directly on a phone (allow "install unknown apps").
+            • **ParkinsonCare.aab** — signed Android App Bundle to upload to Google Play.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
