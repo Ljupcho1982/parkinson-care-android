@@ -5,16 +5,21 @@
 
   function boot() {
     var Cap = window.Capacitor;
-    if (!Cap || !Cap.isNativePlatform || !Cap.registerPlugin) {
-      if (tries++ < 100) setTimeout(boot, 100); // wait up to ~10s for Capacitor to inject
+    if (!Cap || !Cap.isNativePlatform) {
+      if (tries++ < 100) setTimeout(boot, 100); // wait for Capacitor to inject
       return;
     }
     if (!Cap.isNativePlatform()) return; // running as a plain web page — do nothing
+    if (!Cap.Plugins || !Cap.Plugins.PillAlarm) {
+      if (tries++ < 100) setTimeout(boot, 100); // wait for the plugin proxy
+      return;
+    }
     init(Cap);
   }
 
   function init(Cap) {
-    var PillAlarm = Cap.registerPlugin("PillAlarm");
+    // This Capacitor build exposes plugins via Capacitor.Plugins (registerPlugin is not present).
+    var PillAlarm = Cap.Plugins.PillAlarm;
     document.documentElement.classList.add("native");
 
     // Disable the web-only alarm engine — native AlarmManager handles alarms now.
