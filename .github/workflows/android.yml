@@ -35,7 +35,7 @@ jobs:
       - name: Install SDK packages
         run: |
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" >/dev/null
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" >/dev/null
 
       - name: Sync Capacitor
         run: npx cap sync android
