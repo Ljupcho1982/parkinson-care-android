@@ -124,14 +124,7 @@ public class AlarmActivity extends Activity {
     private int ttsStatus = -99;
 
     private void speakNow() {
-        StringBuilder dbg = new StringBuilder("voice: init=");
-        dbg.append(ttsStatus == TextToSpeech.SUCCESS ? "OK" : ("ERR(" + ttsStatus + ")"));
-        if (ttsStatus != TextToSpeech.SUCCESS || tts == null) {
-            dbg.append(tts == null ? " engine=null" : " (no engine)");
-            setDebug(dbg.toString());
-            return;
-        }
-        try { dbg.append(" eng=").append(tts.getDefaultEngine()); } catch (Exception ignored) {}
+        if (ttsStatus != TextToSpeech.SUCCESS || tts == null) return;
 
         final String mkText = "Време е да го земете лекот. " + name + ". " + (dose == null ? "" : dose);
         final String enText = "Time to take your medication. " + name + ". " + (dose == null ? "" : dose);
@@ -139,7 +132,6 @@ public class AlarmActivity extends Activity {
 
         boolean haveMk = isAvail(mkLoc);
         boolean haveEn = isAvail(Locale.US) || isAvail(Locale.ENGLISH);
-        dbg.append(" en=").append(haveEn).append(" mk=").append(haveMk);
 
         String text;
         boolean preferMk = "mk".equals(lang) || (("auto".equals(lang) || lang == null)
@@ -162,20 +154,11 @@ public class AlarmActivity extends Activity {
             @Override public void onError(String id) { duckRing(false); }
         });
 
-        int r1 = tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "pk1");
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "pk1");
         tts.playSilentUtterance(900, TextToSpeech.QUEUE_ADD, "g1");
         tts.speak(text, TextToSpeech.QUEUE_ADD, null, "pk2");
         tts.playSilentUtterance(900, TextToSpeech.QUEUE_ADD, "g2");
         tts.speak(text, TextToSpeech.QUEUE_ADD, null, "end");
-        dbg.append(" speak=").append(r1 == TextToSpeech.SUCCESS ? "OK" : ("ERR(" + r1 + ")"));
-        setDebug(dbg.toString());
-    }
-
-    private void setDebug(final String s) {
-        try {
-            TextView t = findViewById(R.id.txtDebug);
-            if (t != null) t.setText(s);
-        } catch (Exception ignored) {}
     }
 
     private void duckRing(boolean quiet) {
